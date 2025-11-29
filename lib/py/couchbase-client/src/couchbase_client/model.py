@@ -119,7 +119,8 @@ class CouchbaseModel(BaseModel):
         cls: type[T],
         client: 'CouchbaseClient',
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
+        order_by: str | None = None
     ) -> list[T]:
         """
         List documents with pagination.
@@ -128,6 +129,7 @@ class CouchbaseModel(BaseModel):
             client: CouchbaseClient instance
             limit: Maximum number of documents to return
             offset: Number of documents to skip
+            order_by: SQL++ compatible ORDER BY clause (e.g., 'created_at DESC')
 
         Returns:
             List of model instances
@@ -137,9 +139,12 @@ class CouchbaseModel(BaseModel):
         collection_name = cls._get_collection_name()
         keyspace = client.get_keyspace(collection_name)
 
+        order_clause = f"ORDER BY {order_by}" if order_by else ""
+
         query = f"""
             SELECT META().id as id, {collection_name}.*
             FROM `{keyspace.bucket_name}`.`{keyspace.scope_name}`.`{keyspace.collection_name}`
+            {order_clause}
             LIMIT {limit} OFFSET {offset}
         """
 

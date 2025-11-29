@@ -22,7 +22,7 @@ async def read_costs(request: Request):
     try:
         # Fetch all costs (adjust limit as needed, default might be 100)
         # For now, let's fetch a reasonable amount to show dashboard populating
-        costs = await CostModel.list(client, limit=1000)
+        costs = await CostModel.list(client, limit=1000, order_by="posting_date DESC")
         return costs
     except Exception as e:
         print(f"Error fetching from Couchbase: {e}")
