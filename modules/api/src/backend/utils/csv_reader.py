@@ -3,7 +3,7 @@ import os
 import io
 from datetime import datetime
 from typing import List, Tuple
-from ..models.costs import Cost
+from ..models.cost import Cost
 
 def parse_float(value: str) -> float:
     if not value:

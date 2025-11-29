@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from pydantic import BaseModel
 from typing import List, Optional, Dict
 import uuid
 import traceback

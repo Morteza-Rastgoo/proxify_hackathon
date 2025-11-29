@@ -14,4 +14,4 @@ class Cost(BaseModel):
     transaction_info: Optional[str] = None
     debit: float
     credit: float
-    supplier_name: Optional[str]
+    supplier_name: Optional[str] = None
