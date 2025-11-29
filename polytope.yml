@@ -1,0 +1,13 @@
+include:
+  - repo: gh:bluetext-io/bluetext
+  - modules/api
+  - modules/frontend
+  - modules/config-manager
+  - modules/couchbase
+tools:
+  default:
+    run:
+      - tool: "api"
+      - tool: "frontend"
+      - tool: "config-manager"
+      - tool: "couchbase"

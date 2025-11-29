@@ -1,0 +1,31 @@
+# System
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv
+venv/
+.env
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# JS/Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.react-router/
+
+# Logs
+*.log
