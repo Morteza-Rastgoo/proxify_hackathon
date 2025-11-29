@@ -17,12 +17,35 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[Cost])
-async def read_costs(request: Request):
+async def read_costs(
+    request: Request,
+    sort_by: str = "posting_date",
+    order: str = "desc"
+):
     client = request.app.state.couchbase_client
+    
+    # Validate sort_by to prevent N1QL injection
+    allowed_sort_fields = [
+        "posting_date", 
+        "account_number", 
+        "account_name", 
+        "verification_text", 
+        "debit",
+        "credit"
+    ]
+    if sort_by not in allowed_sort_fields:
+        sort_by = "posting_date"
+        
+    # Validate order
+    if order.lower() not in ["asc", "desc"]:
+        order = "desc"
+
+    order_clause = f"{sort_by} {order.upper()}"
+
     try:
         # Fetch all costs (adjust limit as needed, default might be 100)
         # For now, let's fetch a reasonable amount to show dashboard populating
-        costs = await CostModel.list(client, limit=1000, order_by="posting_date DESC")
+        costs = await CostModel.list(client, limit=1000, order_by=order_clause)
         return costs
     except Exception as e:
         print(f"Error fetching from Couchbase: {e}")

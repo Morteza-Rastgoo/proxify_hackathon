@@ -44,12 +44,20 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+    key: "posting_date",
+    direction: "desc",
+  });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3030";
-      const response = await fetch(`${apiBaseUrl}/costs/`);
+      const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:3030";
+      const params = new URLSearchParams({
+        sort_by: sortConfig.key,
+        order: sortConfig.direction,
+      });
+      const response = await fetch(`${apiBaseUrl}/costs/?${params}`);
       const data = await response.json();
       setCosts(data);
     } catch (error) {
@@ -61,7 +69,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [sortConfig]);
+
+  const handleSort = (key: string) => {
+    setSortConfig((current: { key: string; direction: "asc" | "desc" }) => ({
+      key,
+      direction:
+        current.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -78,7 +94,7 @@ export default function Dashboard() {
 
     try {
       // Send CSV directly to API backend, bypassing the frontend proxy
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3030";
+      const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:3030";
       const response = await fetch(`${apiBaseUrl}/costs/upload`, {
         method: "POST",
         body: formData,
@@ -101,33 +117,33 @@ export default function Dashboard() {
     }
   };
 
-  const filteredCosts = costs.filter((cost) =>
+  const filteredCosts = costs.filter((cost: Cost) =>
     cost.account_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cost.verification_text?.toLowerCase().includes(searchTerm.toLowerCase())
+    (cost.verification_text && cost.verification_text.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const totalDebet = filteredCosts.reduce((sum, cost) => sum + cost.debit, 0);
-  const totalKredit = filteredCosts.reduce((sum, cost) => sum + cost.credit, 0);
+  const totalDebet = filteredCosts.reduce((sum: number, cost: Cost) => sum + cost.debit, 0);
+  const totalKredit = filteredCosts.reduce((sum: number, cost: Cost) => sum + cost.credit, 0);
 
   // Prepare data for charts
-  const costsByMonth = filteredCosts.reduce((acc, cost) => {
+  const costsByMonth = filteredCosts.reduce((acc: Record<string, number>, cost: Cost) => {
     const month = cost.posting_date.substring(0, 7); // YYYY-MM
     acc[month] = (acc[month] || 0) + cost.debit;
     return acc;
   }, {} as Record<string, number>);
 
   const barChartData = Object.entries(costsByMonth)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const costsByKonto = filteredCosts.reduce((acc, cost) => {
+  const costsByKonto = filteredCosts.reduce((acc: Record<string, number>, cost: Cost) => {
     const key = `${cost.account_number} - ${cost.account_name}`;
     acc[key] = (acc[key] || 0) + cost.debit;
     return acc;
   }, {} as Record<string, number>);
 
   const pieChartData = Object.entries(costsByKonto)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10); // Top 10
 
@@ -227,7 +243,7 @@ export default function Dashboard() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
                     const RADIAN = Math.PI / 180;
                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -265,10 +281,46 @@ export default function Dashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount (Debet)</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("posting_date")}
+                    className="flex items-center gap-1 p-0 hover:bg-transparent font-semibold"
+                  >
+                    Date 
+                    {sortConfig.key === "posting_date" && (sortConfig.direction === "asc" ? "↑" : "↓")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("account_number")}
+                    className="flex items-center gap-1 p-0 hover:bg-transparent font-semibold"
+                  >
+                    Account 
+                    {sortConfig.key === "account_number" && (sortConfig.direction === "asc" ? "↑" : "↓")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("verification_text")}
+                    className="flex items-center gap-1 p-0 hover:bg-transparent font-semibold"
+                  >
+                    Description 
+                    {sortConfig.key === "verification_text" && (sortConfig.direction === "asc" ? "↑" : "↓")}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("debit")}
+                    className="flex items-center gap-1 p-0 hover:bg-transparent font-semibold ml-auto"
+                  >
+                    Amount (Debet) 
+                    {sortConfig.key === "debit" && (sortConfig.direction === "asc" ? "↑" : "↓")}
+                  </Button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
