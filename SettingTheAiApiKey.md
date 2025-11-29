@@ -1,0 +1,1 @@
+```pt secrets set <API_KEY>```
