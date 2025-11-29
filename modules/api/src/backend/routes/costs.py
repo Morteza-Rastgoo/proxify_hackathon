@@ -3,6 +3,7 @@ from typing import List
 import uuid
 import traceback
 from uuid import UUID
+from pydantic import BaseModel
 from ..models.cost import Cost
 from ..utils.csv_reader import get_costs, parse_csv_content
 from ..couchbase.models.cost import CostModel
@@ -16,11 +17,17 @@ router = APIRouter(
     tags=["costs"],
 )
 
-@router.get("/", response_model=List[Cost])
+class PaginatedCosts(BaseModel):
+    items: List[Cost]
+    total: int
+
+@router.get("/", response_model=PaginatedCosts)
 async def read_costs(
     request: Request,
     sort_by: str = "posting_date",
-    order: str = "desc"
+    order: str = "desc",
+    limit: int = 20,
+    offset: int = 0
 ):
     client = request.app.state.couchbase_client
     
@@ -43,13 +50,12 @@ async def read_costs(
     order_clause = f"{sort_by} {order.upper()}"
 
     try:
-        # Fetch all costs (adjust limit as needed, default might be 100)
-        # For now, let's fetch a reasonable amount to show dashboard populating
-        costs = await CostModel.list(client, limit=1000, order_by=order_clause)
-        return costs
+        total = await CostModel.count(client)
+        costs = await CostModel.list(client, limit=limit, offset=offset, order_by=order_clause)
+        return {"items": costs, "total": total}
     except Exception as e:
         print(f"Error fetching from Couchbase: {e}")
-        return []
+        return {"items": [], "total": 0}
 
 @router.post("/upload")
 async def upload_costs(request: Request, file: UploadFile = File(...)):

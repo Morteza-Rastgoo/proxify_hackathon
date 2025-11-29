@@ -152,6 +152,32 @@ class CouchbaseModel(BaseModel):
         return [cls(**row) for row in rows]
 
     @classmethod
+    async def count(cls, client: 'CouchbaseClient') -> int:
+        """
+        Count total documents in the collection.
+
+        Args:
+            client: CouchbaseClient instance
+
+        Returns:
+            Total count of documents
+        """
+        from couchbase_client import CouchbaseClient
+
+        collection_name = cls._get_collection_name()
+        keyspace = client.get_keyspace(collection_name)
+
+        query = f"""
+            SELECT COUNT(*) as count
+            FROM `{keyspace.bucket_name}`.`{keyspace.scope_name}`.`{keyspace.collection_name}`
+        """
+
+        rows = await client.query_documents(query)
+        if rows:
+            return rows[0].get('count', 0)
+        return 0
+
+    @classmethod
     async def upsert(cls, client: 'CouchbaseClient', doc: T) -> None:
         """
         Insert or update a document.
