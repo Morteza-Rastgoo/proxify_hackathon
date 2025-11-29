@@ -21,4 +21,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
-couchbase-client = { path = "../lib/py/couchbase-client", editable = true }
+couchbase-client = { path = "/lib/py/couchbase-client", editable = true }

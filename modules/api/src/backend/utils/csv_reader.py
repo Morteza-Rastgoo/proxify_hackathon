@@ -3,14 +3,14 @@ import os
 import io
 from datetime import datetime
 from typing import List, Tuple
-from ..models.cost import Cost
+from ..models.costs import Cost
 
 def parse_float(value: str) -> float:
     if not value:
         return 0.0
-    # Replace comma with dot and remove quotes if present
+    # Replace comma with dot, remove quotes, and remove spaces (thousands separator)
     try:
-        clean_value = str(value).replace('"', '').replace(',', '.')
+        clean_value = str(value).replace('"', '').replace(',', '.').replace(' ', '').replace('\xa0', '')
         return float(clean_value)
     except ValueError:
         return 0.0

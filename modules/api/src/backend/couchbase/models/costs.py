@@ -2,7 +2,8 @@
 Model for working with 'cost' documents in Couchbase.
 """
 
-from typing import Optional
+import typing
+from typing import Optional, ClassVar
 from uuid import UUID
 from datetime import date
 
@@ -21,7 +22,8 @@ class CostModel(CouchbaseModel):
     """
 
     # Optional: Override collection name (defaults to "cost")
-    # collection_name: ClassVar[str] = "cost"
+    # We use 'costs' to match project requirements
+    collection_name: typing.ClassVar[str] = "costs"
 
     # Optional: Override key type (defaults to UUID)
     # key_type: ClassVar[type] = UUID

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
-from typing import List
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from typing import List, Optional
 import uuid
 import traceback
 from uuid import UUID
-from ..models.cost import Cost
+from ..models.costs import Cost
 from ..utils.csv_reader import get_costs, parse_csv_content
-from ..couchbase.models.cost import CostModel
+from ..couchbase.models.costs import CostModel
 
 # Configure logging
 import logging
@@ -29,11 +29,15 @@ async def read_costs(request: Request):
         return []
 
 @router.post("/upload")
-async def upload_costs(request: Request, file: UploadFile = File(...)):
+async def upload_costs(
+    request: Request, 
+    file: UploadFile = File(...),
+    duplicate_strategy: str = Form("keep")
+):
+    client = request.app.state.couchbase_client
+    
     try:
         content = await file.read()
-        # Ensure we are at the beginning of the file if it was read before
-        # await file.seek(0) 
         
         try:
             # Try utf-8-sig first to handle BOM
@@ -45,7 +49,7 @@ async def upload_costs(request: Request, file: UploadFile = File(...)):
                 # Try latin-1 or generic fallback if utf-8 fails
                 text = content.decode("latin-1")
             
-        print(f"Received file content length: {len(text)}")
+        print(f"Received file content length: {len(text)} with duplicate strategy: {duplicate_strategy}")
         
         # Parse CSV
         transactions, parse_errors = parse_csv_content(text)
@@ -55,15 +59,43 @@ async def upload_costs(request: Request, file: UploadFile = File(...)):
              error_details = "; ".join(parse_errors[:5])
              raise ValueError(f"No valid transactions found in the CSV. Details: {error_details}")
 
-        # Upsert to Couchbase
-        client = request.app.state.couchbase_client
+        # For skip/replace strategies, we need to fetch existing transactions to check for duplicates
+        # This is a naive implementation. For large datasets, this should be optimized (e.g. batch checks or N1QL)
+        existing_vernr = set()
+        if duplicate_strategy in ["skip", "replace"]:
+            # Fetch all costs to check against vernr. 
+            # Ideally we would query for just the Vernrs we are uploading, but for now fetching all is simpler for this hackathon scope
+            # Or even better: CostModel should have vernr as a secondary index or part of the key
+            existing_costs = await CostModel.list(client, limit=10000) # Adjust limit as needed
+            # Assuming vernr is present in CostModel
+            existing_vernr = {c.vernr: c.id for c in existing_costs if hasattr(c, 'vernr')}
+
         count = 0
+        skipped = 0
+        replaced = 0
+
         for t in transactions:
-            # Map 't' (which is Cost Pydantic model) to CostModel (Couchbase model)
-            doc_id = uuid.uuid4()
+            # Check for duplicates based on vernr
+            existing_id = existing_vernr.get(t.vernr)
             
+            if existing_id and duplicate_strategy == "skip":
+                skipped += 1
+                continue
+            
+            if existing_id and duplicate_strategy == "replace":
+                # We reuse the existing ID to "replace" the document (upserting with same ID)
+                doc_id = existing_id
+                replaced += 1
+            else:
+                # New document
+                doc_id = uuid.uuid4()
+
             # Convert Pydantic model to dict
-            data = t.dict()
+            # Use model_dump if available (Pydantic v2), fallback to dict (v1)
+            if hasattr(t, "model_dump"):
+                data = t.model_dump()
+            else:
+                data = t.dict()
             
             doc = CostModel(
                 id=doc_id,
@@ -72,8 +104,16 @@ async def upload_costs(request: Request, file: UploadFile = File(...)):
             
             await CostModel.upsert(client, doc)
             count += 1
+
+        message = f"Processed {len(transactions)} transactions."
+        if duplicate_strategy == "skip":
+            message += f" Skipped {skipped} duplicates. Imported {count} new."
+        elif duplicate_strategy == "replace":
+            message += f" Replaced {replaced} existing. Imported/Updated {count} total."
+        else:
+            message += f" Imported {count} transactions."
             
-        return {"message": f"Seeded {count} transactions"}
+        return {"message": message}
     except Exception as e:
         print(f"Error processing upload: {e}")
         traceback.print_exc()

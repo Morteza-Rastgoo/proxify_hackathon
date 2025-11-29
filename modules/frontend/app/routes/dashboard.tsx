@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
+import { ImportCostsModal } from "~/components/import-costs-modal";
 import {
   Table,
   TableBody,
@@ -42,8 +42,6 @@ export default function Dashboard() {
   const [costs, setCosts] = useState<Cost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -62,44 +60,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      // Send CSV directly to API backend, bypassing the frontend proxy
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3030";
-      const response = await fetch(`${apiBaseUrl}/costs/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert("File uploaded and data seeded successfully!");
-        setFile(null);
-        // Refresh the data to show newly seeded costs
-        await fetchData();
-      } else {
-        const error = await response.text();
-        alert(`Upload failed: ${error}`);
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Error uploading file");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const filteredCosts = costs.filter((cost) =>
     cost.account_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,18 +102,7 @@ export default function Dashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Cost Dashboard</h1>
         <div className="flex items-center gap-2">
-          <Input 
-            type="file" 
-            accept=".csv" 
-            onChange={handleFileChange} 
-            className="w-64"
-          />
-          <Button 
-            onClick={handleUpload} 
-            disabled={!file || uploading}
-          >
-            {uploading ? "Uploading..." : "Seed from CSV"}
-          </Button>
+          <ImportCostsModal onUploadComplete={fetchData} />
         </div>
       </div>
 
