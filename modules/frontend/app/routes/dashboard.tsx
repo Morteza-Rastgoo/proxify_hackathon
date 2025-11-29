@@ -76,7 +76,9 @@ export default function Dashboard() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("/api/costs/upload", {
+      // Send CSV directly to API backend, bypassing the frontend proxy
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3030";
+      const response = await fetch(`${apiBaseUrl}/costs/upload`, {
         method: "POST",
         body: formData,
       });
@@ -84,10 +86,8 @@ export default function Dashboard() {
       if (response.ok) {
         alert("File uploaded and data seeded successfully!");
         setFile(null);
-        // Optionally refresh data if the backend serves from Couchbase now? 
-        // Ideally yes, but our GET /costs still reads from the local file in my implementation!
-        // I need to update GET /costs to read from Couchbase if I want to see the seeded data.
-        // But for now, let's just complete the seeding part.
+        // Refresh the data to show newly seeded costs
+        await fetchData();
       } else {
         const error = await response.text();
         alert(`Upload failed: ${error}`);
