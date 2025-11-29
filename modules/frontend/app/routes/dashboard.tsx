@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { ImportCostsModal } from "~/components/import-costs-modal";
@@ -57,6 +58,7 @@ export default function Dashboard() {
   const [costs, setCosts] = useState<Cost[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refining, setRefining] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
     key: "posting_date",
@@ -106,6 +108,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleRefineTransactions = async () => {
+    setRefining(true);
+    try {
+      const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:3030";
+      const response = await fetch(`${apiBaseUrl}/costs/refine-costs-to-transactions`, {
+        method: "POST",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to refine transactions");
+      }
+      
+      const data = await response.json();
+      alert(`Refined transactions: ${data.message}`);
+    } catch (error) {
+      console.error("Error refining transactions:", error);
+      alert("Error refining transactions. Check console for details.");
+    } finally {
+      setRefining(false);
+    }
+  };
+
   // Filter fetched costs (client-side search on current page only)
   const filteredCosts = costs.filter((cost: Cost) =>
     cost.account_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,8 +173,20 @@ export default function Dashboard() {
   return (
     <div className="p-8 space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Cost Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">Cost Dashboard</h1>
+          <Button variant="secondary" size="sm" asChild>
+            <Link to="/transactions">Transactions</Link>
+          </Button>
+        </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefineTransactions}
+            disabled={refining}
+          >
+            {refining ? "Refining..." : "Refine Transactions"}
+          </Button>
           <ImportCostsModal onUploadComplete={fetchData} />
         </div>
       </div>

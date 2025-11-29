@@ -262,16 +262,21 @@ async def refine_transactions_add_supplier(request: Request):
                 detail="AI_API_KEY environment variable is not set"
             )
         
-        # Get all transactions to find unique verification_texts
-        transactions_collection = TransactionModel._get_collection_name()
-        transactions_keyspace = client.get_keyspace(transactions_collection)
+        # Get all costs to find unique verification_texts
+        # We fetch from costs collection as it contains the source data
+        costs_collection = CostModel._get_collection_name()
+        costs_keyspace = client.get_keyspace(costs_collection)
         
-        # Query to get all unique transaction_info values (non-null)
+        # Query to get all unique verification_text values (non-null)
         query = f"""
             SELECT DISTINCT verification_text
-            FROM `{transactions_keyspace.bucket_name}`.`{transactions_keyspace.scope_name}`.`{transactions_keyspace.collection_name}`
+            FROM `{costs_keyspace.bucket_name}`.`{costs_keyspace.scope_name}`.`{costs_keyspace.collection_name}`
             WHERE verification_text IS NOT NULL AND verification_text != ''
         """
+
+        # Use transactions keyspace for the update query
+        transactions_collection = TransactionModel._get_collection_name()
+        transactions_keyspace = client.get_keyspace(transactions_collection)
         
         result = await client.query_documents(query)
         unique_verification_texts = [item['verification_text'] for item in result]
@@ -357,18 +362,22 @@ Return ONLY valid JSON, no additional text or explanation."""
         updated_count = 0
         
         for verification_text, supplier_name in text_to_supplier.items():
-            # Query to find all transactions with this transaction_info
+            # Query to find all transactions with this verification_text
             update_query = f"""
                 UPDATE `{transactions_keyspace.bucket_name}`.`{transactions_keyspace.scope_name}`.`{transactions_keyspace.collection_name}`
                 SET supplier_name = $supplier_name
-                WHERE transaction_info = $verification_text
+                WHERE verification_text = $verification_text
                 RETURNING META().id
             """
             
             updated = await client.query_documents(
                 update_query,
-                supplier_name=supplier_name,
-                verification_text=verification_text
+                parameters={
+                    "named_parameters": {
+                        "supplier_name": supplier_name,
+                        "verification_text": verification_text
+                    }
+                }
             )
             
             updated_count += len(updated)

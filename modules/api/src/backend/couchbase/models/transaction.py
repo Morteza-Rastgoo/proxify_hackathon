@@ -20,6 +20,9 @@ class TransactionModel(CouchbaseModel):
     - Collection initialization
     """
 
+    # Explicitly set collection name to match database
+    collection_name: str = "transactions"
+
     # Document fields - same structure as CostModel
     vernr: str
     account_number: int
