@@ -4,7 +4,7 @@ import uuid
 import traceback
 from uuid import UUID
 from pydantic import BaseModel
-from ..models.costs import Cost
+from ..models.cost import Cost
 from ..utils.csv_reader import get_costs, parse_csv_content
 from ..couchbase.models.costs import CostModel
 
