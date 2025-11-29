@@ -93,12 +93,14 @@ def parse_csv_content(content: str) -> Tuple[List[Cost], List[str]]:
     return costs, errors
 
 def get_costs() -> List[Cost]:
-    file_path = "Cillers Cost Log - Costs.csv"
+    # CSV moved to tests/data
+    file_path = "tests/data/Cillers Cost Log - Costs.csv"
+    # Also check modules/api/tests/data just in case
     if not os.path.exists(file_path):
         if os.path.exists(os.path.join("modules", "api", file_path)):
             file_path = os.path.join("modules", "api", file_path)
-        elif os.path.exists("/app/Cillers Cost Log - Costs.csv"):
-             file_path = "/app/Cillers Cost Log - Costs.csv"
+        elif os.path.exists("/app/tests/data/Cillers Cost Log - Costs.csv"):
+             file_path = "/app/tests/data/Cillers Cost Log - Costs.csv"
         else:
             return []
 
