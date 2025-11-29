@@ -119,7 +119,8 @@ class CouchbaseModel(BaseModel):
         cls: type[T],
         client: 'CouchbaseClient',
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
+        order_by: str | None = None
     ) -> list[T]:
         """
         List documents with pagination.
@@ -128,6 +129,7 @@ class CouchbaseModel(BaseModel):
             client: CouchbaseClient instance
             limit: Maximum number of documents to return
             offset: Number of documents to skip
+            order_by: SQL++ compatible ORDER BY clause (e.g., 'created_at DESC')
 
         Returns:
             List of model instances
@@ -137,14 +139,43 @@ class CouchbaseModel(BaseModel):
         collection_name = cls._get_collection_name()
         keyspace = client.get_keyspace(collection_name)
 
+        order_clause = f"ORDER BY {order_by}" if order_by else ""
+
         query = f"""
             SELECT META().id as id, {collection_name}.*
             FROM `{keyspace.bucket_name}`.`{keyspace.scope_name}`.`{keyspace.collection_name}`
+            {order_clause}
             LIMIT {limit} OFFSET {offset}
         """
 
         rows = await client.query_documents(query)
         return [cls(**row) for row in rows]
+
+    @classmethod
+    async def count(cls, client: 'CouchbaseClient') -> int:
+        """
+        Count total documents in the collection.
+
+        Args:
+            client: CouchbaseClient instance
+
+        Returns:
+            Total count of documents
+        """
+        from couchbase_client import CouchbaseClient
+
+        collection_name = cls._get_collection_name()
+        keyspace = client.get_keyspace(collection_name)
+
+        query = f"""
+            SELECT COUNT(*) as count
+            FROM `{keyspace.bucket_name}`.`{keyspace.scope_name}`.`{keyspace.collection_name}`
+        """
+
+        rows = await client.query_documents(query)
+        if rows:
+            return rows[0].get('count', 0)
+        return 0
 
     @classmethod
     async def upsert(cls, client: 'CouchbaseClient', doc: T) -> None:
