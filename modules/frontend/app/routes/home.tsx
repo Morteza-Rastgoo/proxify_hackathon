@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/home";
+import { Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -19,7 +21,7 @@ export default function Home() {
     const fetchHello = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:3030/hello");
+        const response = await fetch("/api/hello");
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -66,6 +68,12 @@ export default function Home() {
           )}
         </CardContent>
       </Card>
+
+      <div className="max-w-md mx-auto mt-8 flex justify-center">
+        <Button asChild>
+          <Link to="/dashboard">Go to Cost Dashboard</Link>
+        </Button>
+      </div>
     </div>
   );
 }

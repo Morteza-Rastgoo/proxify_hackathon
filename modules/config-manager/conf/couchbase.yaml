@@ -46,3 +46,4 @@ buckets:
               prod:
                 max_ttl: 7200
           sessions: {}  # No settings; uses collection_defaults
+          cost: {}

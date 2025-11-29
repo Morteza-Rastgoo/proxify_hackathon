@@ -8,12 +8,14 @@ from fastapi import APIRouter, Request, HTTPException, Query
 
 from ..utils import log
 from .. import conf
+from . import costs
 # from .utils import RequestPrincipal # NOTE: uncomment to use auth
 # from .utils import DBSession # NOTE: uncomment to use postgres
 # from .utils import CouchbaseDB
 
 logger = log.get_logger(__name__)
 router = APIRouter()
+router.include_router(costs.router)
 
 #### Utilities ####
 

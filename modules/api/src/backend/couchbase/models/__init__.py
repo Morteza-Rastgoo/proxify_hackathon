@@ -9,7 +9,10 @@ All models are automatically registered here.
 # from .users import UserModel
 
 # Registry of all models
+
+from .cost import CostModel
 MODELS = [
     # Add model classes here
     # Example: UserModel
+    CostModel,
 ]
