@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { Route } from "./+types/home";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -10,50 +11,59 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="max-w-2xl w-full">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold mb-2">
-            React Router + Bun Template
-          </CardTitle>
-          <CardDescription className="text-lg">
-            A modern, production-ready template for building React applications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">
-              This template includes everything you need to start building:
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Badge variant="secondary">React 19</Badge>
-              <Badge variant="secondary">React Router 7</Badge>
-              <Badge variant="secondary">Bun Runtime</Badge>
-              <Badge variant="secondary">shadcn/ui Components</Badge>
-              <Badge variant="secondary">Tailwind CSS</Badge>
-              <Badge variant="secondary">TypeScript</Badge>
-              <Badge variant="secondary">Polytope Containerization</Badge>
-            </div>
-          </div>
-          
-          <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
-            <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">
-              Adding Dependencies
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Use the polytope module to add new packages:
-            </p>
-            <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-800 dark:text-gray-200">
-              polytope run {`frontend`}-add --packages "package-name"
-            </code>
-          </div>
+  const [message, setMessage] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Start building your application by editing the routes in the <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">app/</code> directory.
-            </p>
-          </div>
+  useEffect(() => {
+    const fetchHello = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:3030/hello");
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setMessage(data.message);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch");
+        console.error("Error fetching hello:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHello();
+  }, []);
+
+  return (
+    <div className="container mx-auto p-8">
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>API Response</CardTitle>
+          <CardDescription>Response from the hello endpoint</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          )}
+          
+          {error && (
+            <Badge variant="destructive" className="text-sm">
+              Error: {error}
+            </Badge>
+          )}
+          
+          {!loading && !error && message && (
+            <div className="text-lg font-semibold text-center py-4">
+              {message}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

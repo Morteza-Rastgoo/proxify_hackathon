@@ -42,6 +42,13 @@ def get_app_version() -> str:
 async def root():
     return {"message": "Hello World"}
 
+@router.get("/hello")
+async def hello(name: Optional[str] = Query(None, description="Name to greet")):
+    """Hello endpoint that returns a personalized greeting."""
+    if name:
+        return {"message": f"Hello, {name}!"}
+    return {"message": "Hello 2!"}
+
 @router.get("/health")
 async def health_check(
     request: Request,
