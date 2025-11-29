@@ -48,7 +48,8 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/costs/");
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3030";
+      const response = await fetch(`${apiBaseUrl}/costs/`);
       const data = await response.json();
       setCosts(data);
     } catch (error) {
