@@ -1,1 +1,1 @@
-```pt secrets set <API_KEY>```
+```pt secrets set ai-api-key <API_KEY>```
