@@ -90,7 +90,7 @@ async def upload_costs(
 
         # For skip/replace strategies, we need to fetch existing transactions to check for duplicates
         # This is a naive implementation. For large datasets, this should be optimized (e.g. batch checks or N1QL)
-        existing_vernr = set()
+        existing_vernr = {}
         if duplicate_strategy in ["skip", "replace"]:
             # Fetch all costs to check against vernr. 
             # Ideally we would query for just the Vernrs we are uploading, but for now fetching all is simpler for this hackathon scope
