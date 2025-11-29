@@ -37,13 +37,5 @@ buckets:
     scopes:
       _default:
         collections:
-          users:
-            defaults:  # Per-collection defaults across envs
-              max_ttl: 3600
-            env_settings:
-              staging:
-                max_ttl: 7200
-              prod:
-                max_ttl: 7200
-          sessions: {}  # No settings; uses collection_defaults
-          cost: {}
+          costs: {}
+          transactions: {}
